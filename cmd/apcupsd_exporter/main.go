@@ -6,6 +6,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/mdlayher/apcupsd"
 	apcupsdexporter "github.com/mdlayher/apcupsd_exporter"
@@ -21,8 +22,34 @@ var (
 	apcupsdNetwork = flag.String("apcupsd.network", "tcp", `network of apcupsd Network Information Server (NIS): typically "tcp", "tcp4", or "tcp6"`)
 )
 
+func getenv_default(key, fallback string) string {
+	value := os.Getenv(key)
+	if len(value) == 0 {
+		return fallback
+	}
+	return value
+}
+
 func main() {
-	flag.Parse()
+	usingEnvVars := os.Getenv("USE_ENV_VARS")
+	if len(usingEnvVars) == 0 {
+		log.Printf("USE_ENV_VARS not set, will parse flags")
+		flag.Parse()
+	} else {
+		ev_telemetry_address := getenv_default("TELEMETRY_ADDRESS", ":9162")
+		ev_metrics_path := getenv_default("METRICS_PATH", "/metrics")
+		ev_apcupsdAddr := getenv_default("APCUPSD_ADDRESS", ":3551")
+		ev_apcupsdNetwork := getenv_default("APCUPSD_NETWORK", "tcp")
+
+		telemetryAddr = &ev_telemetry_address
+		metricsPath = &ev_metrics_path
+		apcupsdAddr = &ev_apcupsdAddr
+		apcupsdNetwork = &ev_apcupsdNetwork
+
+		log.Printf("Using Environment Variables: telemetryAddr: %s metricsPath: %s apcupsdAddr: %s apcupsdNetwork: %s",
+			*telemetryAddr, *metricsPath, *apcupsdAddr, *apcupsdNetwork)
+	}
+	// flag.Parse()
 
 	if *apcupsdAddr == "" {
 		log.Fatal("address of apcupsd Network Information Server (NIS) must be specified with '-apcupsd.addr' flag")
