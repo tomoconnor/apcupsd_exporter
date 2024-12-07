@@ -24,6 +24,7 @@ type UPSCollector struct {
 	BatteryChargePercent                *prometheus.Desc
 	LineVolts                           *prometheus.Desc
 	LineNominalVolts                    *prometheus.Desc
+	OutputVolts                         *prometheus.Desc
 	BatteryVolts                        *prometheus.Desc
 	BatteryNominalVolts                 *prometheus.Desc
 	BatteryNumberTransfersTotal         *prometheus.Desc
@@ -34,6 +35,7 @@ type UPSCollector struct {
 	LastTransferOffBatteryTimeSeconds   *prometheus.Desc
 	LastSelftestTimeSeconds             *prometheus.Desc
 	NominalPowerWatts                   *prometheus.Desc
+	InternalTemperatureCelsius          *prometheus.Desc
 
 	ss StatusSource
 }
@@ -48,7 +50,7 @@ func NewUPSCollector(ss StatusSource) *UPSCollector {
 		Info: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "info"),
 			"Metadata about a given UPS.",
-			[]string{"ups", "hostname", "model"},
+			[]string{"ups", "hostname", "model", "status"},
 			nil,
 		),
 
@@ -76,6 +78,13 @@ func NewUPSCollector(ss StatusSource) *UPSCollector {
 		LineNominalVolts: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "line_nominal_volts"),
 			"Nominal AC input line voltage.",
+			labels,
+			nil,
+		),
+
+		OutputVolts: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "output_volts"),
+			"Current AC output voltage.",
 			labels,
 			nil,
 		),
@@ -150,6 +159,13 @@ func NewUPSCollector(ss StatusSource) *UPSCollector {
 			nil,
 		),
 
+		InternalTemperatureCelsius: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "", "internal_temperature_celsius"),
+			"Internal temperature in °C.",
+			labels,
+			nil,
+		),
+
 		ss: ss,
 	}
 }
@@ -163,6 +179,7 @@ func (c *UPSCollector) Describe(ch chan<- *prometheus.Desc) {
 		c.BatteryChargePercent,
 		c.LineVolts,
 		c.LineNominalVolts,
+		c.OutputVolts,
 		c.BatteryVolts,
 		c.BatteryNominalVolts,
 		c.BatteryNumberTransfersTotal,
@@ -173,6 +190,7 @@ func (c *UPSCollector) Describe(ch chan<- *prometheus.Desc) {
 		c.LastTransferOffBatteryTimeSeconds,
 		c.LastSelftestTimeSeconds,
 		c.NominalPowerWatts,
+		c.InternalTemperatureCelsius,
 	}
 
 	for _, d := range ds {
@@ -194,7 +212,7 @@ func (c *UPSCollector) Collect(ch chan<- prometheus.Metric) {
 		c.Info,
 		prometheus.GaugeValue,
 		1,
-		s.UPSName, s.Hostname, s.Model,
+		s.UPSName, s.Hostname, s.Model, s.Status,
 	)
 
 	ch <- prometheus.MustNewConstMetric(
@@ -222,6 +240,13 @@ func (c *UPSCollector) Collect(ch chan<- prometheus.Metric) {
 		c.LineNominalVolts,
 		prometheus.GaugeValue,
 		s.NominalInputVoltage,
+		s.UPSName,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.OutputVolts,
+		prometheus.GaugeValue,
+		s.OutputVoltage,
 		s.UPSName,
 	)
 
@@ -292,6 +317,13 @@ func (c *UPSCollector) Collect(ch chan<- prometheus.Metric) {
 		c.NominalPowerWatts,
 		prometheus.GaugeValue,
 		float64(s.NominalPower),
+		s.UPSName,
+	)
+
+	ch <- prometheus.MustNewConstMetric(
+		c.InternalTemperatureCelsius,
+		prometheus.GaugeValue,
+		s.InternalTemp,
 		s.UPSName,
 	)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func TestUPSCollector(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		desc    string
 		ss      *testStatusSource
 		matches []*regexp.Regexp
@@ -27,6 +27,7 @@ func TestUPSCollector(t *testing.T) {
 					Hostname: "foo",
 					Model:    "APC UPS",
 					UPSName:  "bar",
+					Status:   "ONLINE",
 
 					BatteryChargePercent:    100.0,
 					CumulativeTimeOnBattery: 30 * time.Second,
@@ -36,12 +37,14 @@ func TestUPSCollector(t *testing.T) {
 					BatteryVoltage:          13.2,
 					NominalInputVoltage:     120.0,
 					LineVoltage:             121.1,
+					OutputVoltage:           120.9,
 					LoadPercent:             16.0,
 					NumberTransfers:         1,
 					XOnBattery:              time.Unix(100001, 0),
 					XOffBattery:             time.Unix(100002, 0),
 					LastSelftest:            time.Unix(100003, 0),
 					NominalPower:            50.0,
+					InternalTemp:            26.4,
 				},
 			},
 			matches: []*regexp.Regexp{
@@ -52,14 +55,16 @@ func TestUPSCollector(t *testing.T) {
 				regexp.MustCompile(`apcupsd_battery_time_on_seconds{ups="bar"} 10`),
 				regexp.MustCompile(`apcupsd_battery_volts{ups="bar"} 13.2`),
 				regexp.MustCompile(`apcupsd_battery_number_transfers_total{ups="bar"} 1`),
-				regexp.MustCompile(`apcupsd_info{hostname="foo",model="APC UPS",ups="bar"} 1`),
+				regexp.MustCompile(`apcupsd_info{hostname="foo",model="APC UPS",status="ONLINE",ups="bar"} 1`),
 				regexp.MustCompile(`apcupsd_line_nominal_volts{ups="bar"} 120`),
 				regexp.MustCompile(`apcupsd_line_volts{ups="bar"} 121.1`),
+				regexp.MustCompile(`apcupsd_output_volts{ups="bar"} 120.9`),
 				regexp.MustCompile(`apcupsd_ups_load_percent{ups="bar"} 16`),
 				regexp.MustCompile(`apcupsd_last_transfer_on_battery_time_seconds{ups="bar"} 100001`),
 				regexp.MustCompile(`apcupsd_last_transfer_off_battery_time_seconds{ups="bar"} 100002`),
 				regexp.MustCompile(`apcupsd_last_selftest_time_seconds{ups="bar"} 100003`),
 				regexp.MustCompile(`apcupsd_nominal_power_watts{ups="bar"} 50`),
+				regexp.MustCompile(`apcupsd_internal_temperature_celsius{ups="bar"} 26.4`),
 			},
 		},
 	}
